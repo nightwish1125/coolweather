@@ -4,7 +4,6 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.telecom.Call;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,7 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import okhttp3.Callback;
+import okhttp3.Call;
 import okhttp3.Response;
 
 public class ChooseAreaFragment extends Fragment {
@@ -65,7 +64,8 @@ public class ChooseAreaFragment extends Fragment {
      */
     private int currentLevel;
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.choose_area, container, false);
         titleText = (TextView) view.findViewById(R.id.title_text);
         backButton = (Button) view.findViewById(R.id.back_button);
@@ -89,11 +89,18 @@ public class ChooseAreaFragment extends Fragment {
                     queryCounties();
                 } else if (currentLevel == LEVEL_COUNTY) {
                     String weatherId = countyList.get(position).getWeatherId();
-                    Intent intent = new Intent(getActivity(), WeatherActivity.
-                            class);
-                    intent.putExtra("weather_id", weatherId);
-                    startActivity(intent);
-                    getActivity().finish();
+                    if (getActivity() instanceof MainActivity) {
+                        Intent intent = new Intent(getActivity(), WeatherActivity.
+                                class);
+                        intent.putExtra("weather_id", weatherId);
+                        startActivity(intent);
+                        getActivity().finish();
+                    } else if (getActivity() instanceof WeatherActivity) {
+                        WeatherActivity activity = (WeatherActivity) getActivity();
+                        activity.drawerLayout.closeDrawers();
+                        activity.swipeRefresh.setRefreshing(true);
+                        activity.requestWeather(weatherId);
+                    }
                 }
             }
         });
@@ -179,7 +186,7 @@ public class ChooseAreaFragment extends Fragment {
      */
     private void queryFromServer(String address, final String type) {
         showProgressDialog();
-        HttpUtil.sendOkHttpRequest(address, new okhttp3.Callback(){
+        HttpUtil.sendOkHttpRequest(address, new okhttp3.Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 String responseText = response.body().string();
